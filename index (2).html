@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fleet Card • โควต้าน้ำมัน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#EEF0EC;
+    --surface:#FFFFFF;
+    --ink:#13302C;
+    --ink-soft:#5A6B66;
+    --line:#DDE2DC;
+    --line-strong:#C7CFC9;
+    --amber:#E0962B;
+    --amber-soft:#F7EAD2;
+    --green:#2C7A57;
+    --green-soft:#E0EFE7;
+    --red:#BC4630;
+    --red-soft:#F4E2DD;
+    --petrol:#13302C;
+    --display:"Space Grotesk","Noto Sans Thai",sans-serif;
+    --body:"Inter","Noto Sans Thai",sans-serif;
+    --mono:"IBM Plex Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:var(--body);
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.45;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+
+  /* ---------- LOGIN ---------- */
+  #login{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  }
+  .pump{
+    width:100%;max-width:430px;background:var(--surface);
+    border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    box-shadow:0 1px 0 rgba(19,48,44,.04),0 18px 50px -28px rgba(19,48,44,.45);
+  }
+  .pump-head{
+    background:var(--petrol);color:#EFF3F0;padding:22px 26px 20px;
+    position:relative;
+  }
+  .pump-head .eyebrow{
+    font-family:var(--body);font-size:11.5px;font-weight:600;letter-spacing:.04em;
+    color:var(--amber);display:flex;align-items:center;gap:8px;
+  }
+  .pump-head .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 3px rgba(224,150,43,.25)}
+  .pump-head h1{font-family:var(--display);font-weight:700;font-size:25px;margin-top:12px;letter-spacing:-0.01em;line-height:1.2}
+  .pump-head p{font-size:13px;color:#A9BAB4;margin-top:6px}
+  .pump-body{padding:26px}
+  label.fld{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);letter-spacing:.02em;margin-bottom:9px}
+  .card-input-wrap{position:relative}
+  #cardInput{
+    width:100%;font-family:var(--mono);font-size:20px;letter-spacing:.16em;font-weight:500;
+    padding:16px 16px;border:1.5px solid var(--line-strong);border-radius:11px;
+    background:#FAFBFA;color:var(--ink);transition:border-color .15s,box-shadow .15s;
+  }
+  #cardInput::placeholder{color:#B8C2BD;letter-spacing:.16em}
+  #cardInput:focus{outline:none;border-color:var(--petrol);box-shadow:0 0 0 4px rgba(19,48,44,.1);background:#fff}
+  .hint{font-size:11.5px;color:var(--ink-soft);margin-top:9px;font-family:var(--mono);letter-spacing:.02em}
+  .digits{margin-top:7px;font-family:var(--mono);font-size:11px;color:#9AA8A2}
+  .digits b{color:var(--ink)}
+  .btn-primary{
+    width:100%;margin-top:20px;padding:15px;border:none;border-radius:11px;
+    background:var(--petrol);color:#fff;font-family:var(--display);font-weight:600;font-size:15px;
+    cursor:pointer;transition:transform .08s,background .15s;display:flex;align-items:center;justify-content:center;gap:9px;
+  }
+  .btn-primary:hover{background:#0c211e}
+  .btn-primary:active{transform:translateY(1px)}
+  .btn-primary:disabled{opacity:.55;cursor:default}
+  .err{
+    margin-top:14px;font-size:13px;color:var(--red);background:var(--red-soft);
+    border:1px solid #E8C8C0;border-radius:9px;padding:11px 13px;display:none;
+  }
+  .err.show{display:block}
+
+  /* ---------- APP ---------- */
+  #app{display:none;max-width:1080px;margin:0 auto;padding:22px 18px 60px}
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:24px;
+  }
+  .who h2{font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:-0.01em}
+  .who .meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--ink-soft)}
+  .who .meta span{display:inline-flex;gap:6px;align-items:baseline}
+  .who .meta b{font-family:var(--mono);color:var(--ink);font-weight:500}
+  .card-chip{
+    font-family:var(--mono);font-size:13px;letter-spacing:.1em;color:var(--ink);
+    background:var(--amber-soft);border:1px solid #ECD8B0;border-radius:8px;padding:5px 11px;display:inline-block;margin-top:2px;
+  }
+  .cards{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px}
+  .cards .card-chip{margin-top:0}
+  .card-chip.old{background:#F1F3EF;border-color:var(--line-strong);color:var(--ink-soft)}
+  .card-chip.old em{font-style:normal;font-family:var(--body);font-size:10px;font-weight:600;letter-spacing:0;color:var(--ink-soft);background:#E4E8E2;border-radius:4px;padding:1px 5px;margin-left:3px}
+  .old-tag{font-family:var(--body);font-size:10px;font-weight:600;letter-spacing:0;color:var(--ink-soft);background:#EEF1ED;border:1px solid var(--line);border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle}
+  .btn-ghost{
+    border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);
+    font-family:var(--body);font-weight:600;font-size:13px;padding:9px 15px;border-radius:9px;cursor:pointer;
+    transition:background .15s;white-space:nowrap;
+  }
+  .btn-ghost:hover{background:#F4F6F3}
+
+  .section-label{
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink-soft);margin:30px 0 13px;display:flex;align-items:center;gap:10px;
+  }
+  .section-label::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* KPI */
+  .kpi-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .kpi-title{font-size:12px;font-weight:600;color:var(--ink-soft);letter-spacing:.02em}
+  .kpi-big{font-family:var(--display);font-weight:700;font-size:34px;letter-spacing:-0.02em;margin-top:10px;line-height:1}
+  .kpi-big.kpi-big-xl{font-size:46px;color:var(--petrol)}
+  .card-hero{display:flex;flex-direction:column;justify-content:center}
+  .card-hero .kpi-big{margin-top:8px}
+  .kpi-big small{font-size:14px;font-weight:500;color:var(--ink-soft);margin-left:4px;font-family:var(--body)}
+  .kpi-sub{font-size:11.5px;color:var(--ink-soft);margin-top:9px}
+  .basis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+  .basis.basis-3{grid-template-columns:repeat(3,1fr)}
+  .basis .b{background:#F7F9F6;border:1px solid var(--line);border-radius:9px;padding:9px 8px;text-align:center}
+  .basis .b .m{font-size:10px;color:var(--ink-soft);letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono)}
+  .basis .b .v{font-family:var(--mono);font-weight:600;font-size:16px;margin-top:3px}
+  .basis .b.avg{background:var(--petrol);border-color:var(--petrol)}
+  .basis .b.avg .m{color:var(--amber)}
+  .basis .b.avg .v{color:#fff}
+
+  /* gauge row */
+  .gauge-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .gauge-card{display:flex;gap:20px;align-items:center}
+  .gauge-wrap{flex-shrink:0;width:180px}
+  .gauge-info{flex:1}
+  .gauge-info .lbl{font-size:12px;font-weight:600;color:var(--ink-soft)}
+  .gauge-info .rem{font-family:var(--display);font-weight:700;font-size:30px;margin-top:6px;line-height:1}
+  .gauge-info .rem small{font-size:14px;color:var(--ink-soft);font-weight:500;font-family:var(--body)}
+  .gauge-info .of{font-size:12px;color:var(--ink-soft);margin-top:8px;font-family:var(--mono)}
+  .badge{display:inline-block;margin-top:11px;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:20px}
+  .badge.ok{background:var(--green-soft);color:var(--green)}
+  .badge.warn{background:var(--amber-soft);color:#A96E15}
+
+  .usage-card .lbl{font-size:12px;font-weight:600;color:var(--ink-soft)}
+  .usage-card .big{font-family:var(--display);font-weight:700;font-size:30px;margin-top:8px;line-height:1}
+  .usage-card .big small{font-size:14px;color:var(--ink-soft);font-weight:500;font-family:var(--body)}
+  .usage-card .note{font-size:11.5px;color:var(--ink-soft);margin-top:8px}
+  .qtr-list{margin-top:13px;display:flex;flex-direction:column;gap:9px}
+  .qtr-row{display:flex;align-items:center;gap:10px;font-size:12px}
+  .qtr-row .qm{width:34px;font-family:var(--mono);color:var(--ink-soft);font-size:11px}
+  .qtr-row .qbar{flex:1;height:7px;background:#EEF1ED;border-radius:4px;overflow:hidden}
+  .qtr-row .qbar i{display:block;height:100%;border-radius:4px;background:var(--petrol)}
+  .qtr-row .qv{width:62px;text-align:right;font-family:var(--mono);font-size:11.5px}
+
+  /* tables */
+  .table-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .table-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:15px 18px;border-bottom:1px solid var(--line)}
+  .table-head h3{font-family:var(--display);font-weight:600;font-size:16px}
+  .table-head .sub{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+  .scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{
+    font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;
+    text-align:right;padding:11px 14px;background:#F7F9F6;white-space:nowrap;border-bottom:1px solid var(--line);
+  }
+  thead th.l,tbody td.l{text-align:left}
+  tbody td{padding:12px 14px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover td{background:#FAFBFA}
+  td.num,th.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .tag-mon{font-family:var(--mono);font-weight:600}
+  .minibar{display:inline-flex;align-items:center;gap:8px;justify-content:flex-end}
+  .minibar .track{width:60px;height:7px;background:#EEF1ED;border-radius:4px;overflow:hidden}
+  .minibar .track i{display:block;height:100%;border-radius:4px}
+  .minibar .pct{font-family:var(--mono);font-size:11.5px;width:42px;text-align:right}
+  .total-row td{background:var(--petrol);color:#fff;font-weight:600;border-bottom:none}
+  .total-row td .num,.total-row td{font-family:var(--mono)}
+  .total-row td.l{font-family:var(--display)}
+
+  .btn-dl{
+    border:1px solid var(--petrol);background:var(--petrol);color:#fff;font-family:var(--body);font-weight:600;
+    font-size:12.5px;padding:9px 14px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:background .15s;
+  }
+  .btn-dl:hover{background:#0c211e}
+  .btn-dl svg{width:15px;height:15px}
+
+  .pager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .pager .info{font-size:12px;color:var(--ink-soft);font-family:var(--mono)}
+  .pager .ctrls{display:flex;gap:8px;align-items:center}
+  .pg-btn{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font-size:13px;font-weight:600;padding:7px 13px;border-radius:8px;cursor:pointer;transition:background .15s}
+  .pg-btn:hover:not(:disabled){background:#F4F6F3}
+  .pg-btn:disabled{opacity:.4;cursor:default}
+  .pg-now{font-family:var(--mono);font-size:13px;color:var(--ink-soft);min-width:64px;text-align:center}
+
+  .empty{padding:34px 18px;text-align:center;color:var(--ink-soft);font-size:13.5px}
+
+  #loadingScreen{display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+  .spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--petrol);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #loadingScreen p{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--ink-soft)}
+
+  @media (max-width:760px){
+    .kpi-grid{grid-template-columns:1fr}
+    .gauge-row{grid-template-columns:1fr}
+    .gauge-card{flex-direction:row}
+    .who h2{font-size:21px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<section id="login">
+  <div class="pump">
+    <div class="pump-head">
+      <div class="eyebrow" id="loginUpdated">กำลังโหลดข้อมูล…</div>
+      <h1>โควต้าน้ำมัน Fleet Card</h1>
+      <p>ใส่เลขบัตร Fleet card ของคุณเพื่อดูโควต้าและประวัติการเติมน้ำมัน</p>
+    </div>
+    <div class="pump-body">
+      <label class="fld" for="cardInput">เลขบัตร Fleet Card</label>
+      <div class="card-input-wrap">
+        <input id="cardInput" inputmode="numeric" autocomplete="off" spellcheck="false"
+               placeholder="0000 0000 0000 0000" maxlength="19">
+      </div>
+      <div class="digits"><span id="digitCount">0</span><b>/16</b> หลัก</div>
+      <div class="hint">ตัวอย่าง: 0004 7000 0000 0000</div>
+      <button class="btn-primary" id="loginBtn">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        เข้าดูข้อมูล
+      </button>
+      <div class="err" id="loginErr"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LOADING ============ -->
+<section id="loadingScreen">
+  <div class="spinner"></div>
+  <p id="loadingMsg">กำลังดึงข้อมูล…</p>
+</section>
+
+<!-- ============ APP ============ -->
+<main id="app"></main>
+
+<script>
+const TRANSACTION_URL = "https://script.google.com/macros/s/AKfycbyqToOpf9-jeB5bNMPbj04wu0KKXxKB2DktbfM3KLKdx_f-EciO8WZ-ze9fm50Yoheqog/exec";
+const QUOTA_URL       = "https://script.google.com/macros/s/AKfycby-ACYQTAEAi1NB6GlGoqKQbne2GcxMIPY4uglRj-AQ51RWz2HQz01oz6PBPsYrZgbh/exec";
+
+const PAGE_SIZE = 10;
+const TH_MONTH = ["","ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+
+let DATA = { tx:null, quota:null };      // cached raw rows
+let VIEW = { txRows:[], page:1, cardDisplay:"" };
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+
+function toNum(v){
+  if(v===null||v===undefined) return 0;
+  const n = parseFloat(String(v).replace(/[, ]/g,""));
+  return isNaN(n)?0:n;
+}
+function digitsOnly(s){ return String(s||"").replace(/\D/g,""); }
+// compare cards ignoring lost leading zeros / numeric or float coercion
+function cardKey(s){ const d=String(s==null?"":s).split(".")[0].replace(/\D/g,"").replace(/^0+/,""); return d||"0"; }
+// normalize employee code (links a person's old + new cards)
+function empKey(s){ return String(s==null?"":s).trim().toUpperCase(); }
+function fmt(n,dec=2){
+  return Number(n).toLocaleString("th-TH",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+// tolerant date parser: DD-MM-YYYY, YYYY-MM-DD, "/" "." separators, 2-digit
+// years, Buddhist years (>2400 -> CE), and stray chars / time suffixes.
+function parseDate(s){
+  if(s===null||s===undefined) return null;
+  const nums = String(s).match(/\d+/g);   // pull out numeric groups only
+  if(!nums || nums.length<3) return null;
+  let a=+nums[0], b=+nums[1], c=+nums[2];
+  let d,m,y;
+  if(a>31){ y=a; m=b; d=c; }      // year-first (e.g. 2026-06-22)
+  else    { d=a; m=b; y=c; }      // day-first  (e.g. 22-06-2026)
+  if(y<100) y+=2000;
+  if(y>2400) y-=543;              // Buddhist Era -> CE
+  if(m>12 && d<=12){ const t=m; m=d; d=t; }  // tolerate reversed day/month
+  if(!d||!m||!y||m<1||m>12||d<1||d>31) return null;
+  return { y, m, d, key:`${y}-${String(m).padStart(2,"0")}`, ts:new Date(y,m-1,d).getTime() };
+}
+function fmtCard(s){
+  let d = digitsOnly(s);
+  if(d.length<16) d = d.padStart(16,"0");  // restore lost leading zeros for display
+  d = d.slice(0,16);
+  return d.replace(/(.{4})/g,"$1 ").trim();
+}
+
+/* ---------- login input UX ---------- */
+const cardInput = $("#cardInput");
+cardInput.addEventListener("input",e=>{
+  const d = digitsOnly(e.target.value).slice(0,16);
+  e.target.value = d.replace(/(.{4})(?=.)/g,"$1 ");
+  $("#digitCount").textContent = d.length;
+});
+cardInput.addEventListener("keydown",e=>{ if(e.key==="Enter") doLogin(); });
+$("#loginBtn").addEventListener("click",doLogin);
+
+// set the login-screen freshness label from currently loaded data
+function refreshUpdatedLabel(){
+  const el = document.getElementById("loginUpdated");
+  if(!el) return;
+  const dt = latestTxDate();
+  if(dt) el.textContent = `ข้อมูลอัปเดตถึง ${fmtDMY(dt)}`;
+}
+
+// warm the cache + show data freshness on the login screen (with retries)
+(async function initLogin(){
+  const el = document.getElementById("loginUpdated");
+  for(let attempt=1; attempt<=3; attempt++){
+    try{
+      await ensureData();
+      const dt = latestTxDate();
+      if(el) el.textContent = dt ? `ข้อมูลอัปเดตถึง ${fmtDMY(dt)}` : "ข้อมูลอัปเดตถึง —";
+      return;
+    }catch(e){
+      console.warn(`prefetch ครั้งที่ ${attempt} ล้มเหลว:`, e && e.message);
+      if(attempt<3) await new Promise(r=>setTimeout(r, 800*attempt));
+    }
+  }
+  if(el) el.textContent = "ข้อมูลอัปเดตถึง —";   // login will still retry the fetch
+})();
+
+/* ---------- data fetch ---------- */
+async function fetchJSON(url){
+  const r = await fetch(url,{headers:{Accept:"application/json"}});
+  if(!r.ok){
+    let body=""; try{ body=(await r.text()).slice(0,140); }catch(_){}
+    throw new Error("HTTP "+r.status+(body?` — ${body}`:""));
+  }
+  return r.json();
+}
+let _dataPromise = null;
+async function ensureData(){
+  if(DATA.tx && DATA.quota) return;
+  if(_dataPromise) return _dataPromise;
+  $("#loadingMsg").textContent = "กำลังดึงข้อมูลโควต้าและรายการเติม…";
+  _dataPromise = (async ()=>{
+    try{
+      const [tx,quota] = await Promise.all([ fetchJSON(TRANSACTION_URL), fetchJSON(QUOTA_URL) ]);
+      DATA.tx = Array.isArray(tx)?tx:[];
+      DATA.quota = Array.isArray(quota)?quota:[];
+    }catch(e){
+      _dataPromise = null;   // don't cache the failure — allow the next call to retry
+      throw e;
+    }
+  })();
+  return _dataPromise;
+}
+// latest transaction date across ALL rows (TRN_DATE primary) -> parsed date or null
+function latestTxDate(){
+  let best=null;
+  for(const r of (DATA.tx||[])){
+    const dt = parseDate(r["TRN_DATE"]) || parseDate(r["POST_DATE"]) || parseDate(r["Date"]);
+    if(dt && (!best || dt.ts>best.ts)) best=dt;
+  }
+  return best;
+}
+function fmtDMY(dt){ return dt ? `${String(dt.d).padStart(2,"0")}-${String(dt.m).padStart(2,"0")}-${dt.y}` : "—"; }
+
+/* ---------- main login flow ---------- */
+async function doLogin(){
+  const errBox = $("#loginErr");
+  errBox.classList.remove("show");
+  const card = digitsOnly(cardInput.value);
+  if(card.length!==16){
+    errBox.textContent = "กรุณากรอกเลขบัตร Fleet card ให้ครบ 16 หลัก";
+    errBox.classList.add("show");
+    return;
+  }
+  $("#loginBtn").disabled = true;
+  $("#login").style.display = "none";
+  $("#loadingScreen").style.display = "flex";
+  try{
+    await ensureData();
+
+    // 1) resolve the employee from the entered card (Quota first, else any transaction on that card)
+    let quotaRow = DATA.quota.find(r => cardKey(r["Fleet Card"])===cardKey(card));
+    let empCode = quotaRow ? quotaRow["Employee Code"] : "";
+    if(!empCode){
+      const hit = DATA.tx.find(r => cardKey(r["CARD_NO"])===cardKey(card));
+      if(hit) empCode = hit["Employee_code.1"];
+    }
+    const ek = empKey(empCode);
+
+    // 2) gather data for the whole employee (all cards, old + new). Fall back to card-only if no code.
+    let txRows;
+    if(ek){
+      if(!quotaRow) quotaRow = DATA.quota.find(r => empKey(r["Employee Code"])===ek);
+      txRows = DATA.tx.filter(r => empKey(r["Employee_code.1"])===ek);
+    }else{
+      txRows = DATA.tx.filter(r => cardKey(r["CARD_NO"])===cardKey(card));
+    }
+
+    if(!quotaRow && txRows.length===0){
+      $("#loadingScreen").style.display="none";
+      $("#login").style.display="flex";
+      $("#loginBtn").disabled=false;
+      errBox.textContent = "ไม่พบบัตรเลขนี้ในระบบ ลองตรวจสอบเลขบัตรอีกครั้ง";
+      errBox.classList.add("show");
+      return;
+    }
+    refreshUpdatedLabel();
+    renderApp(card, quotaRow, txRows);
+  }catch(err){
+    $("#loadingScreen").style.display="none";
+    $("#login").style.display="flex";
+    $("#loginBtn").disabled=false;
+    errBox.textContent = "ดึงข้อมูลไม่สำเร็จ: "+err.message+" — ลองใหม่อีกครั้ง";
+    errBox.classList.add("show");
+  }
+}
+
+function logout(){
+  $("#app").style.display="none";
+  $("#app").innerHTML="";
+  $("#login").style.display="flex";
+  $("#loginBtn").disabled=false;
+  cardInput.value=""; $("#digitCount").textContent="0";
+  $("#loginErr").classList.remove("show");
+  window.scrollTo(0,0);
+}
+
+/* ---------- gauge svg ---------- */
+function gaugeSVG(fraction){           // fraction 0..1 of quota REMAINING
+  const f = Math.max(0,Math.min(1,fraction));
+  const cx=100, cy=100, r=78;
+  const startA=180, endA=360;          // semicircle, E(left) -> F(right)
+  const ang = startA + (endA-startA)*f;
+  const rad = ang*Math.PI/180;
+  const nx = cx + (r-14)*Math.cos(rad);
+  const ny = cy + (r-14)*Math.sin(rad);
+  // concrete colors (CSS vars don't resolve inside SVG presentation attributes)
+  const RED="#BC4630", AMBER="#E0962B", GREEN="#2C7A57", INK="#13302C", INKSOFT="#5A6B66";
+  const col = f<=0.25 ? RED : f<=0.5 ? AMBER : GREEN;
+  const pt = (a)=>[cx+r*Math.cos(a*Math.PI/180), cy+r*Math.sin(a*Math.PI/180)];
+  const [sx,sy]=pt(180), [ex,ey]=pt(360);
+  const [fx,fy]=pt(ang);
+  return `
+  <svg viewBox="0 0 200 118" width="100%" role="img" aria-label="มาตรวัดโควต้าคงเหลือ ${Math.round(f*100)} เปอร์เซ็นต์">
+    <path d="M${sx} ${sy} A ${r} ${r} 0 0 1 ${ex} ${ey}" fill="none" stroke="#EEF1ED" stroke-width="14" stroke-linecap="round"/>
+    <path d="M${sx} ${sy} A ${r} ${r} 0 0 1 ${fx} ${fy}" fill="none" stroke="${col}" stroke-width="14" stroke-linecap="round"/>
+    <text x="20" y="112" font-size="11" fill="${INKSOFT}" style="font-family:'IBM Plex Mono',monospace">E</text>
+    <text x="172" y="112" font-size="11" fill="${INKSOFT}" style="font-family:'IBM Plex Mono',monospace">F</text>
+    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="6" fill="${INK}"/>
+    <circle cx="${cx}" cy="${cy}" r="2.4" fill="#fff"/>
+  </svg>`;
+}
+
+/* ---------- render ---------- */
+function renderApp(card, q, txAll){
+  const app = $("#app");
+
+  // employee meta (prefer quota row, fallback to a transaction row)
+  const tref = txAll[0] || {};
+  const name = (q && q["Name"]) || tref["Driver_name.1"] || "—";
+  const empCode = (q && q["Employee Code"]) || tref["Employee_code.1"] || "—";
+  const plate = (q && q["Plate"]) || tref["PLATE_NO"] || "—";
+  const team = (q && q["Team"]) || tref["DEPARTMENT"] || "";
+  const position = (q && q["Position"]) || "";
+  const company = (q && q["Company"]) || tref["COMPANY_NAME"] || "";
+
+  // quota numbers
+  const qApr=toNum(q&&q["Apr"]), qMay=toNum(q&&q["May"]), qJun=toNum(q&&q["Jun"]), qAvg=toNum(q&&q["Avg"]);
+  const oneM=toNum(q&&q["1M"]);   // monthly quota (col N)
+  const oneQ=toNum(q&&q["1Q"]);   // quarterly quota Q3 (col O)
+  const hasQuota = !!q;
+
+  // normalize tx -> parsed
+  const parsed = txAll.map(r=>{
+    const litre = toNum(r["QTY_LITRE"]);
+    const excl  = toNum(r["EXCLUDE_VAT_AMOUNT"]);
+    const dt = parseDate(r["TRN_DATE"]) || parseDate(r["POST_DATE"]) || parseDate(r["Date"]);
+    return {
+      raw:r, dt,
+      litre, excl,
+      pricePerL: litre>0 ? excl/litre : 0,
+      cardNo:r["CARD_NO"]||"", empCode:r["Employee_code.1"]||"",
+      name:r["Driver_name.1"]||"", plate:r["PLATE_NO"]||""
+    };
+  }).filter(t=>t.dt); // need a valid date
+
+  // actual fills Apr-Jun 2026 (basis quarter — has data)
+  const aprJunMonths=[4,5,6];
+  const aprJunByMonth = aprJunMonths.map(m=>parsed.filter(t=>t.dt.y===2026&&t.dt.m===m).reduce((s,t)=>s+t.litre,0));
+  const fillsAprJun = aprJunByMonth.reduce((a,b)=>a+b,0);
+  // Q3 2026 (Jul-Sep) actual fills -> for remaining
+  const q3Months=[7,8,9];
+  const q3byMonth = q3Months.map(m=>parsed.filter(t=>t.dt.y===2026&&t.dt.m===m).reduce((s,t)=>s+t.litre,0));
+  const q3Used = q3byMonth.reduce((a,b)=>a+b,0);
+  const remaining = oneQ - q3Used;
+  const remFrac = oneQ>0 ? remaining/oneQ : 1;
+
+  // monthly summary since Jan 2026 (ascending)
+  const monMap = new Map();
+  parsed.forEach(t=>{
+    if(t.dt.y<2026) return;
+    if(!monMap.has(t.dt.key)) monMap.set(t.dt.key,{y:t.dt.y,m:t.dt.m,litre:0,excl:0,n:0});
+    const o=monMap.get(t.dt.key); o.litre+=t.litre; o.excl+=t.excl; o.n++;
+  });
+  const months = [...monMap.values()].sort((a,b)=> a.y-b.y || a.m-b.m);
+  const totL = months.reduce((s,m)=>s+m.litre,0);
+  const totE = months.reduce((s,m)=>s+m.excl,0);
+
+  VIEW.txRows = parsed.slice().sort((a,b)=> b.dt.ts - a.dt.ts); // newest first
+  VIEW.page = 1;
+  VIEW.cardDisplay = fmtCard(card);
+  VIEW.enteredKey = cardKey(card);
+
+  // distinct cards this employee has used (current first, then previous)
+  const keyToCard = new Map();
+  parsed.forEach(t=>{ const k=cardKey(t.cardNo); if(t.cardNo && !keyToCard.has(k)) keyToCard.set(k, t.cardNo); });
+  if(!keyToCard.has(VIEW.enteredKey)) keyToCard.set(VIEW.enteredKey, card);
+  const prevCards = [...keyToCard.entries()].filter(([k])=>k!==VIEW.enteredKey).map(([,c])=>fmtCard(c));
+
+  /* ----- build HTML ----- */
+  const metaParts = [];
+  if(company) metaParts.push(`<span>บริษัท <b>${esc(company)}</b></span>`);
+  if(team) metaParts.push(`<span>ทีม <b>${esc(team)}</b></span>`);
+  if(position) metaParts.push(`<span>ตำแหน่ง <b>${esc(position)}</b></span>`);
+
+  app.innerHTML = `
+    <div class="topbar">
+      <div class="who">
+        <h2>${esc(name)}</h2>
+        <div class="meta">
+          <span>รหัสพนักงาน <b>${esc(empCode)}</b></span>
+          <span>ทะเบียนรถ <b>${esc(plate)}</b></span>
+          ${metaParts.join("")}
+        </div>
+        <div class="cards">
+          <span class="card-chip" title="บัตรปัจจุบัน">${VIEW.cardDisplay}</span>
+          ${prevCards.map(c=>`<span class="card-chip old" title="บัตรเดิม">${c} <em>เดิม</em></span>`).join("")}
+        </div>
+      </div>
+      <button class="btn-ghost" id="logoutBtn">ออกจากระบบ</button>
+    </div>
+
+    ${hasQuota ? `
+    <div class="section-label">โควต้า Q3 2026 (ก.ค.–ก.ย.)</div>
+    <div class="kpi-grid">
+      <div class="card">
+        <div class="kpi-title">ฐานคำนวณโควต้า — เติมจริง เม.ย.–มิ.ย.</div>
+        <div class="basis basis-3">
+          <div class="b"><div class="m">Apr</div><div class="v">${fmt(qApr,0)}</div></div>
+          <div class="b"><div class="m">May</div><div class="v">${fmt(qMay,0)}</div></div>
+          <div class="b"><div class="m">Jun *</div><div class="v">${fmt(qJun,0)}</div></div>
+        </div>
+        <div class="kpi-sub">หน่วย: ลิตร — ใช้เป็นฐานกำหนดโควต้าไตรมาส<br><b>*</b> มิ.ย. คิดแบบ Prorata จากข้อมูล 15 วัน เป็นเต็ม 30 วัน</div>
+      </div>
+      <div class="card card-hero">
+        <div class="kpi-title">โควต้าสำหรับ Q3 2026</div>
+        <div class="kpi-big kpi-big-xl">${fmt(oneQ,0)}<small>ลิตร</small></div>
+      </div>
+    </div>
+
+    <div class="gauge-row">
+      <div class="card gauge-card">
+        <div class="gauge-wrap">${gaugeSVG(remFrac)}</div>
+        <div class="gauge-info">
+          <div class="lbl">โควต้าคงเหลือ Q3 (ก.ค.–ก.ย.)</div>
+          <div class="rem">${fmt(remaining,0)}<small>ลิตร</small></div>
+          <div class="of">ใช้ไป ${fmt(q3Used,0)} / ${fmt(oneQ,0)} ลิตร</div>
+          ${ remaining>=0
+              ? `<span class="badge ok">เหลือ ${oneQ>0?Math.round(remFrac*100):100}% ของโควต้า</span>`
+              : `<span class="badge warn">เกินโควต้า ${fmt(-remaining,0)} ลิตร</span>` }
+        </div>
+      </div>
+      <div class="card usage-card">
+        <div class="lbl">เติมจริง 3 เดือน (ก.ค.–ก.ย. 2026)</div>
+        <div class="big">${fmt(q3Used,0)}<small>ลิตร</small></div>
+        <div class="qtr-list">
+          ${(()=>{ const maxQ=Math.max(1,...q3byMonth); return q3Months.map((m,i)=>{
+            const used=q3byMonth[i]; const pct=used/maxQ*100;
+            return `<div class="qtr-row">
+              <span class="qm">${TH_MONTH[m]}</span>
+              <span class="qbar"><i style="width:${pct}%;background:var(--petrol)"></i></span>
+              <span class="qv">${fmt(used,0)} ล.</span>
+            </div>`;
+          }).join(""); })()}
+        </div>
+      </div>
+    </div>
+    ` : `
+    <div class="card" style="margin-top:8px">
+      <div class="kpi-title">ไม่พบข้อมูลโควต้าของบัตรนี้</div>
+      <div class="kpi-sub">บัตรนี้มีรายการเติมน้ำมัน แต่ยังไม่ถูกตั้งโควต้าในระบบ — แสดงเฉพาะประวัติการเติมด้านล่าง</div>
+    </div>
+    `}
+
+    <div class="section-label">สรุปรายเดือน (ตั้งแต่ ม.ค. 2026)</div>
+    <div class="table-card">
+      <div class="table-head">
+        <div><h3>การเติมน้ำมันรายเดือน</h3><div class="sub">ราคา/ลิตร = ยอดไม่รวม VAT ÷ จำนวนลิตรรวม</div></div>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead><tr>
+            <th class="l">เดือน</th>
+            <th class="num">จำนวนลิตร</th>
+            <th class="num">ราคา/ลิตร</th>
+            <th class="num">ยอด (ไม่รวม VAT)</th>
+          </tr></thead>
+          <tbody>
+            ${ months.length ? months.map(m=>{
+                const ppl = m.litre>0 ? m.excl/m.litre : 0;
+                return `<tr>
+                  <td class="l tag-mon">${TH_MONTH[m.m]} ${m.y}</td>
+                  <td class="num">${fmt(m.litre,2)}</td>
+                  <td class="num">${fmt(ppl,2)}</td>
+                  <td class="num">${fmt(m.excl,2)}</td>
+                </tr>`;
+              }).join("") + `
+              <tr class="total-row">
+                <td class="l">รวมทั้งหมด</td>
+                <td class="num">${fmt(totL,2)}</td>
+                <td class="num">${fmt(totL>0?totE/totL:0,2)}</td>
+                <td class="num">${fmt(totE,2)}</td>
+              </tr>`
+              : `<tr><td class="empty" colspan="4">ยังไม่มีรายการเติมน้ำมันตั้งแต่ ม.ค. 2026</td></tr>` }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-label">รายการเติมน้ำมัน (ราย transaction)</div>
+    <div class="table-card">
+      <div class="table-head">
+        <div><h3>ประวัติการเติม</h3><div class="sub">ข้อมูลอัปเดตถึง ${fmtDMY(latestTxDate())} • เรียงจากใหม่ไปเก่า • ราคา/ลิตร = ยอดไม่รวม VAT ÷ จำนวนลิตร</div></div>
+        <button class="btn-dl" id="dlBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+          ดาวน์โหลด .xlsx
+        </button>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead><tr>
+            <th class="l">วันที่</th>
+            <th class="l">Fleet card</th>
+            <th class="l">รหัสพนักงาน</th>
+            <th class="l">ชื่อพนักงาน</th>
+            <th class="l">ทะเบียนรถ</th>
+            <th class="num">จำนวนลิตร</th>
+            <th class="num">ราคา/ลิตร</th>
+            <th class="num">ไม่รวม VAT</th>
+          </tr></thead>
+          <tbody id="txBody"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="pager"></div>
+    </div>
+  `;
+
+  $("#app").style.display="block";
+  $("#loadingScreen").style.display="none";
+  $("#logoutBtn").addEventListener("click",logout);
+  $("#dlBtn").addEventListener("click",()=>exportXLSX(name));
+  renderTxPage();
+  window.scrollTo(0,0);
+}
+
+function renderTxPage(){
+  const rows = VIEW.txRows;
+  const total = rows.length;
+  const pages = Math.max(1, Math.ceil(total/PAGE_SIZE));
+  if(VIEW.page>pages) VIEW.page=pages;
+  const start=(VIEW.page-1)*PAGE_SIZE;
+  const slice = rows.slice(start, start+PAGE_SIZE);
+
+  const body = $("#txBody");
+  if(!total){
+    body.innerHTML = `<tr><td class="empty" colspan="8">ไม่มีรายการเติมน้ำมันของพนักงานคนนี้</td></tr>`;
+  } else {
+    body.innerHTML = slice.map(t=>`
+      <tr>
+        <td class="l mono">${t.dt.d.toString().padStart(2,"0")}-${t.dt.m.toString().padStart(2,"0")}-${t.dt.y}</td>
+        <td class="l mono">${esc(fmtCard(t.cardNo))}${cardKey(t.cardNo)!==VIEW.enteredKey?` <span class="old-tag">เดิม</span>`:""}</td>
+        <td class="l mono">${esc(t.empCode)}</td>
+        <td class="l">${esc(t.name)}</td>
+        <td class="l mono">${esc(t.plate)}</td>
+        <td class="num">${fmt(t.litre,2)}</td>
+        <td class="num">${fmt(t.pricePerL,2)}</td>
+        <td class="num">${fmt(t.excl,2)}</td>
+      </tr>`).join("");
+  }
+
+  const from = total? start+1 : 0;
+  const to = Math.min(start+PAGE_SIZE,total);
+  $("#pager").innerHTML = `
+    <div class="info">${from}–${to} จาก ${total} รายการ</div>
+    <div class="ctrls">
+      <button class="pg-btn" id="prevBtn" ${VIEW.page<=1?"disabled":""}>ก่อนหน้า</button>
+      <span class="pg-now">${VIEW.page} / ${pages}</span>
+      <button class="pg-btn" id="nextBtn" ${VIEW.page>=pages?"disabled":""}>ถัดไป</button>
+    </div>`;
+  const prev=$("#prevBtn"), next=$("#nextBtn");
+  if(prev) prev.onclick=()=>{ if(VIEW.page>1){VIEW.page--;renderTxPage();} };
+  if(next) next.onclick=()=>{ if(VIEW.page<pages){VIEW.page++;renderTxPage();} };
+}
+
+/* ---------- xlsx export (all rows for this card) ---------- */
+function exportXLSX(name){
+  const rows = VIEW.txRows.map(t=>({
+    "วันที่ (TRN_DATE)": `${t.dt.d.toString().padStart(2,"0")}-${t.dt.m.toString().padStart(2,"0")}-${t.dt.y}`,
+    "Fleet card": fmtCard(t.cardNo),
+    "รหัสพนักงาน": t.empCode,
+    "ชื่อพนักงาน": t.name,
+    "ทะเบียนรถ": t.plate,
+    "จำนวนลิตร": Number(t.litre.toFixed(2)),
+    "ราคา/ลิตร": Number(t.pricePerL.toFixed(2)),
+    "ไม่รวม VAT": Number(t.excl.toFixed(2))
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows.length?rows:[{"ไม่มีข้อมูล":""}]);
+  ws["!cols"] = [{wch:16},{wch:21},{wch:14},{wch:22},{wch:14},{wch:12},{wch:11},{wch:14}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+  const safe = (name||"fleet").replace(/[\\/:*?"<>|]/g,"_").slice(0,24);
+  XLSX.writeFile(wb, `fuel_${safe}_${VIEW.cardDisplay.replace(/ /g,"")}.xlsx`);
+}
+
+function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
+</script>
+</body>
+</html>
